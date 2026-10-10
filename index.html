@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>المجلة والموسوعة الصيدلانية الإكلينيكية المحترفة</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50: '#f0fdf4', 500: '#10b981', 600: '#059669', 700: '#047857' }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome & Cairo Font -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap');
+        body { font-family: 'Cairo', sans-serif; }
+        .glass-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); }
+        .dark .glass-card { background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(12px); }
+    </style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen transition-colors duration-300 pb-12">
+
+    <!-- LOGIN OVERLAY SCREEN -->
+    <div id="authOverlay" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-slate-900 max-w-md w-full p-8 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 text-center space-y-6">
+            <div class="bg-emerald-600 text-white w-16 h-16 rounded-2xl mx-auto flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                <i class="fa-solid fa-user-shield text-2xl"></i>
+            </div>
+            <div>
+                <h2 id="authTitle" class="text-2xl font-black">تسجيل الدخول للموسوعة</h2>
+                <p id="authSubtitle" class="text-xs text-slate-500 mt-1">الرجاء إدخال بيانات حساب الصيدلي الخاص بك</p>
+            </div>
+            <form id="authForm" onsubmit="handleAuth(event)" class="space-y-4 text-right">
+                <div>
+                    <label class="block text-xs font-bold mb-1 text-slate-500">اسم المستخدم (Username)</label>
+                    <input type="text" id="authUsername" required class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500" placeholder="مثال: dr_omar">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold mb-1 text-slate-500">كلمة المرور (Password)</label>
+                    <input type="password" id="authPassword" required class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500" placeholder="••••••••">
+                </div>
+                <button type="submit" id="authBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl shadow-lg transition text-sm">دخول</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTENT -->
+    <div id="mainApp" class="hidden">
+        <!-- Navbar -->
+        <header class="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-40">
+            <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+                <div class="flex items-center space-x-3 space-x-reverse">
+                    <div class="bg-gradient-to-tr from-emerald-600 to-teal-500 text-white p-2.5 rounded-2xl shadow-lg shadow-emerald-500/20">
+                        <i class="fa-solid fa-stethoscope text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-black bg-gradient-to-r from-emerald-600 via-teal-500 to-indigo-500 bg-clip-text text-transparent">المجلة الصيدلانية الإكلينيكية</h1>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 font-semibold">دكتور / <span id="displayUsername" class="text-emerald-600 font-bold"></span></p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2 space-x-reverse">
+                    <button onclick="openApiKeyModal()" class="text-xs bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-3 py-2 rounded-xl flex items-center gap-1.5 transition font-bold">
+                        <i class="fa-solid fa-key text-amber-500"></i> مفتاح الذكاء الاصطناعي
+                    </button>
+                    <button onclick="toggleDarkMode()" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+                        <i id="theme-icon" class="fa-solid fa-moon text-slate-700 dark:text-yellow-400"></i>
+                    </button>
+                    <button onclick="logout()" title="تسجيل الخروج" class="p-2.5 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-500 hover:bg-red-100 transition">
+                        <i class="fa-solid fa-power-off"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Container -->
+        <main class="max-w-7xl mx-auto px-4 py-6">
+            <!-- Tabs Menu -->
+            <div class="flex flex-wrap gap-2 mb-8 bg-white/60 dark:bg-slate-900/60 p-2 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm backdrop-blur">
+                <button onclick="switchTab('cases')" id="tab-cases" class="tab-btn px-5 py-2.5 rounded-xl font-bold text-sm bg-emerald-600 text-white shadow-md transition flex items-center gap-2">
+                    <i class="fa-solid fa-notes-medical"></i> دراسة الحالات (Case Studies)
+                </button>
+                <button onclick="switchTab('conditions')" id="tab-conditions" class="tab-btn px-5 py-2.5 rounded-xl font-bold text-sm bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition flex items-center gap-2">
+                    <i class="fa-solid fa-disease"></i> مشاكل وأمراض البشرة
+                </button>
+                <button onclick="switchTab('products')" id="tab-products" class="tab-btn px-5 py-2.5 rounded-xl font-bold text-sm bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition flex items-center gap-2">
+                    <i class="fa-solid fa-boxes-stacked"></i> كتالوج المنتجات
+                </button>
+                <button onclick="switchTab('add-entry')" id="tab-add-entry" class="tab-btn px-5 py-2.5 rounded-xl font-bold text-sm bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition flex items-center gap-2">
+                    <i class="fa-solid fa-circle-plus"></i> إضافة بيانات جديدة
+                </button>
+                <button onclick="switchTab('quiz')" id="tab-quiz" class="tab-btn px-5 py-2.5 rounded-xl font-bold text-sm bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition flex items-center gap-2">
+                    <i class="fa-solid fa-brain text-purple-500"></i> اختبار الذكاء الاصطناعي
+                </button>
+            </div>
+
+            <!-- TAB 1: CASES -->
+            <section id="section-cases" class="space-y-6">
+                <div class="flex justify-between items-center bg-gradient-to-r from-emerald-600 to-teal-700 text-white p-6 rounded-3xl shadow-lg">
+                    <div>
+                        <h2 class="text-2xl font-black mb-1">دليل الحالات الإكلينيكية والروتينات العلاجية</h2>
+                        <p class="text-xs text-emerald-100">استعراض الحالات مع صورها والمنتجات المضافة مرتبة للاستخدام</p>
+                    </div>
+                    <i class="fa-solid fa-stethoscope text-4xl opacity-30"></i>
+                </div>
+                <div id="casesList" class="grid grid-cols-1 gap-6"></div>
+            </section>
+
+            <!-- TAB 2: CONDITIONS -->
+            <section id="section-conditions" class="hidden space-y-6">
+                <div class="bg-gradient-to-r from-indigo-600 to-blue-700 text-white p-6 rounded-3xl shadow-lg flex justify-between items-center">
+                    <div>
+                        <h2 class="text-2xl font-black mb-1">دليل وأمراض وعيوب البشرة</h2>
+                        <p class="text-xs text-indigo-100">شرح الأعراض والمواد الفعالة المستهدفة للحل</p>
+                    </div>
+                    <i class="fa-solid fa-hand-holding-medical text-4xl opacity-30"></i>
+                </div>
+                <div id="conditionsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+            </section>
+
+            <!-- TAB 3: PRODUCTS -->
+            <section id="section-products" class="hidden space-y-6">
+                <div class="glass-card p-4 rounded-2xl border border-slate-200 dark:border-slate-800 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <input type="text" id="pSearchInput" oninput="renderProducts()" placeholder="ابحث باسم المنتج أو المادة الفعالة..." class="bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm">
+                    <select id="pSkinFilter" onchange="renderProducts()" class="bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm">
+                        <option value="">كل أنواع البشرة</option>
+                        <option value="دهنية">دهنية</option>
+                        <option value="جافة">جافة</option>
+                        <option value="مختلطة">مختلطة</option>
+                        <option value="حساسة">حساسة</option>
+                        <option value="عادية">عادية</option>
+                    </select>
+                    <select id="pBrandFilter" onchange="renderProducts()" class="bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm">
+                        <option value="">كل الشركات والبراندات</option>
+                    </select>
+                </div>
+                <div id="productsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            </section>
+
+            <!-- TAB 4: ADD ENTRY -->
+            <section id="section-add-entry" class="hidden max-w-3xl mx-auto space-y-6">
+                <div class="glass-card p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl">
+                    <div class="flex gap-2 mb-6 border-b border-slate-200 dark:border-slate-700 pb-4">
+                        <button type="button" onclick="switchFormType('product')" id="btn-form-product" class="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 text-white">إضافة منتج تجميلي</button>
+                        <button type="button" onclick="switchFormType('case')" id="btn-form-case" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">إضافة حالة إكلينيكية (Case)</button>
+                        <button type="button" onclick="switchFormType('condition')" id="btn-form-condition" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">إضافة مرض / عيب بشرة</button>
+                    </div>
+
+                    <!-- 1. Product Form -->
+                    <form id="formAddProduct" onsubmit="saveProduct(event)" class="space-y-4">
+                        <h3 class="text-lg font-bold text-emerald-600 mb-2">إضافة مستحضر تجميلي</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <input type="text" id="pName" required placeholder="اسم المنتج" class="bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm">
+                            <input type="text" id="pBrand" required placeholder="الشركة / البراند" class="bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm">
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <select id="pSkin" class="bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm">
+                                <option value="دهنية">دهنية</option>
+                                <option value="جافة">جافة</option>
+                                <option value="مختلطة">مختلطة</option>
+                                <option value="حساسة">حساسة</option>
+                                <option value="عادية">عادية</option>
+                            </select>
+                            <input type="text" id="pPurpose" required placeholder="الغرض والاستخدام" class="bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm">
+                            <input type="text" id="pAge" placeholder="السن المناسب" class="bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm">
+                        </div>
+                        <textarea id="pIngredients" placeholder="المواد الفعالة وتركيزها" rows="2" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm"></textarea>
+                        <textarea id="pUsage" placeholder="طريقة الاستخدام" rows="2" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm"></textarea>
+                        <textarea id="pSalesTip" placeholder="نصيحة الصيدلي وكيفية وصفه للعميل" rows="2" class="w-full bg-emerald-50 dark:bg-slate-900 border border-emerald-300 rounded-xl px-3 py-2 text-sm"></textarea>
+                        <input type="url" id="pImage" placeholder="رابط صورة المنتج (اختياري)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm">
+                        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl shadow-lg transition">حفظ المنتج في الكتالوج</button>
+                    </form>
+
+                    <!-- 2. Case Form -->
+                    <form id="formAddCase" onsubmit="saveCase(event)" class="hidden space-y-4">
+                        <h3 class="text-lg font-bold text-teal-600 mb-2">إضافة حالة إكلينيكية جديدة مع اختيار المنتجات</h3>
+                        <input type="text" id="cTitle" required placeholder="عنوان الحالة (مثال: علاج تصبغات وحبوب بشرة مختلطة)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm">
+                        <input type="url" id="cImage" placeholder="رابط صورة الحالة المرضية (اختياري)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm">
+                        <textarea id="cDescription" required placeholder="وصف الحالة والأعراض المشخصة" rows="2" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm"></textarea>
+                        
+                        <!-- Interactive Product Selector -->
+                        <div class="bg-slate-50 dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
+                            <label class="block text-xs font-bold text-emerald-600 dark:text-emerald-400">اختر المنتجات المناسبة من الكتالوج (انقر للإضافة للروتين):</label>
+                            <div id="productPickerList" class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-1">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1">المنتجات المختارة للروتين:</label>
+                            <div id="selectedProductsContainer" class="flex flex-wrap gap-2 min-h-[40px] p-2 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900 rounded-xl">
+                                <span class="text-xs text-slate-400 italic">لم تقم باختيار منتجات بعد...</span>
+                            </div>
+                        </div>
+
+                        <textarea id="cRoutine" required placeholder="ترتيب وتوقيت الاستخدام (مثال: صباحاً غسول ثم مرطب، مساءً علاج التصبغات...)" rows="3" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm"></textarea>
+                        <button type="submit" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 rounded-xl shadow-lg transition">حفظ الحالة الإكلينيكية</button>
+                    </form>
+
+                    <!-- 3. Condition Form -->
+                    <form id="formAddCondition" onsubmit="saveCondition(event)" class="hidden space-y-4">
+                        <h3 class="text-lg font-bold text-indigo-600 mb-2">إضافة مرض / عيب بشرة</h3>
+                        <input type="text" id="condName" required placeholder="اسم المشكلة (مثل: الهالات السوداء)" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm">
+                        <textarea id="condSymptoms" required placeholder="الأعراض والأسباب" rows="2" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm"></textarea>
+                        <textarea id="condIngredients" required placeholder="المواد الفعالة والعلاج" rows="2" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm"></textarea>
+                        <textarea id="condAvoid" placeholder="المحظورات والأخطاء" rows="2" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm"></textarea>
+                        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow-lg transition">حفظ المشكلة</button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- TAB 5: AI QUIZ -->
+            <section id="section-quiz" class="hidden max-w-3xl mx-auto glass-card p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 text-center shadow-xl">
+                <div class="mb-6">
+                    <div class="inline-block p-4 bg-purple-100 dark:bg-purple-900/40 text-purple-600 rounded-2xl mb-3 text-3xl">
+                        <i class="fa-solid fa-brain"></i>
+                    </div>
+                    <h2 class="text-2xl font-black">اختبار الذاكرة بالذكاء الاصطناعي</h2>
+                    <p class="text-slate-500 text-xs mt-1">أسئلة ذكية تولد خصيصاً من منتجاتك وحالاتك المرضية المسجلة.</p>
+                </div>
+                <div id="quiz-setup">
+                    <button onclick="startAiQuiz()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold px-8 py-3.5 rounded-2xl shadow-lg transition text-sm flex items-center gap-2 mx-auto">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> توليد اختبار ذكي جديد
+                    </button>
+                </div>
+                <div id="quiz-container" class="hidden text-right space-y-4 mt-4"></div>
+            </section>
+        </main>
+    </div>
+
+    <!-- API Key Modal -->
+    <div id="apiKeyModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white dark:bg-slate-900 max-w-md w-full p-6 rounded-3xl shadow-2xl border border-slate-800">
+            <h3 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-key text-amber-500"></i> مفتاح Gemini API</h3>
+            <input type="password" id="apiKeyInput" placeholder="AIzaSy..." class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm mb-4">
+            <div class="flex justify-end gap-2">
+                <button onclick="closeApiKeyModal()" class="px-4 py-2 bg-slate-200 dark:bg-slate-800 text-xs rounded-xl font-bold">إلغاء</button>
+                <button onclick="saveApiKey()" class="px-4 py-2 bg-emerald-600 text-white text-xs rounded-xl font-bold">حفظ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script Logic -->
+    <script>
+        let products = JSON.parse(localStorage.getItem('ph_products_db')) || [];
+        let caseStudies = JSON.parse(localStorage.getItem('ph_cases_db')) || [];
+        let conditions = JSON.parse(localStorage.getItem('ph_conditions_db')) || [];
+        let usersAccounts = JSON.parse(localStorage.getItem('ph_users_db')) || [];
+        let currentUser = localStorage.getItem('ph_logged_user') || null;
+        let apiKey = localStorage.getItem('gemini_api_key') || '';
+        let selectedProductsForCase = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+            renderProducts();
+            renderCases();
+            renderConditions();
+            updateBrandDropdown();
+            renderProductPicker();
+            initTheme();
+        });
+
+        // Auth Management
+        function checkAuth() {
+            if (!currentUser) {
+                document.getElementById('authOverlay').classList.remove('hidden');
+                document.getElementById('mainApp').classList.add('hidden');
+                if (usersAccounts.length === 0) {
+                    document.getElementById('authTitle').innerText = "إنشاء حساب صيدلي جديد";
+                    document.getElementById('authSubtitle').innerText = "أنشئ اسم مستخدم وكلمة مرور لحماية موسوعتك";
+                    document.getElementById('authBtn').innerText = "إنشاء الحساب والدخول";
+                } else {
+                    document.getElementById('authTitle').innerText = "تسجيل الدخول";
+                    document.getElementById('authSubtitle').innerText = "أدخل بيانات حسابك المعتمدة";
+                    document.getElementById('authBtn').innerText = "دخول";
+                }
+            } else {
+                document.getElementById('authOverlay').classList.add('hidden');
+                document.getElementById('mainApp').classList.remove('hidden');
+                document.getElementById('displayUsername').innerText = currentUser;
+            }
+        }
+
+        function handleAuth(e) {
+            e.preventDefault();
+            const u = document.getElementById('authUsername').value.trim();
+            const p = document.getElementById('authPassword').value.trim();
+
+            if (usersAccounts.length === 0) {
+                // Register first account
+                usersAccounts.push({ username: u, password: p });
+                localStorage.setItem('ph_users_db', JSON.stringify(usersAccounts));
+                currentUser = u;
+                localStorage.setItem('ph_logged_user', u);
+                checkAuth();
+            } else {
+                // Login
+                const found = usersAccounts.find(acc => acc.username === u && acc.password === p);
+                if (found) {
+                    currentUser = u;
+                    localStorage.setItem('ph_logged_user', u);
+                    checkAuth();
+                } else {
+                    alert('اسم المستخدم أو كلمة المرور غير صحيحة!');
+                }
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('ph_logged_user');
+            currentUser = null;
+            checkAuth();
+        }
+
+        // Tab Switcher
+        function switchTab(tabId) {
+            ['cases', 'conditions', 'products', 'add-entry', 'quiz'].forEach(t => {
+                document.getElementById(`section-${t}`).classList.add('hidden');
+                document.getElementById(`tab-${t}`).className = "tab-btn px-5 py-2.5 rounded-xl font-bold text-sm bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition flex items-center gap-2";
+            });
+            document.getElementById(`section-${tabId}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`tab-${tabId}`);
+            if(tabId === 'cases') activeBtn.className = "tab-btn px-5 py-2.5 rounded-xl font-bold text-sm bg-emerald-600 text-white shadow-md transition flex items-center gap-2";
+            if(tabId === 'conditions') activeBtn.className = "tab-btn px-5 py-2.5 rounded-xl font-bold text-sm bg-indigo-600 text-white shadow-md transition flex items-center gap-2";
+            if(tabId === 'products') activeBtn.className = "tab-btn px-5 py-2.5 rounded-xl font-bold text-sm bg-teal-600 text-white shadow-md transition flex items-center gap-2";
+            if(tabId === 'add-entry') activeBtn.className = "tab-btn px-5 py-2.5 rounded-xl font-bold text-sm bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-md transition flex items-center gap-2";
+            if(tabId === 'quiz') activeBtn.className = "tab-btn px-5 py-2.5 rounded-xl font-bold text-sm bg-purple-600 text-white shadow-md transition flex items-center gap-2";
+        }
+
+        // Product Picker for Case Form
+        function renderProductPicker() {
+            const picker = document.getElementById('productPickerList');
+            if(products.length === 0) {
+                picker.innerHTML = `<span class="text-xs text-slate-400 col-span-full">لا توجد منتجات مسجلة بعد. أضف منتجات أولاً للكتالوج.</span>`;
+                return;
+            }
+            picker.innerHTML = products.map(p => `
+                <div onclick='toggleProductForCase(${JSON.stringify(p)})' class="cursor-pointer bg-white dark:bg-slate-800 p-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-emerald-500 flex items-center gap-2 transition">
+                    ${p.image ? `<img src="${p.image}" class="w-8 h-8 rounded-lg object-cover">` : `<div class="w-8 h-8 bg-slate-200 dark:bg-slate-700 rounded-lg flex items-center justify-center text-xs"><i class="fa-solid fa-pump-soap"></i></div>`}
+                    <div class="overflow-hidden text-right">
+                        <p class="text-xs font-bold truncate">${p.name}</p>
+                        <p class="text-[10px] text-slate-400">${p.brand}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function toggleProductForCase(prod) {
+            const exists = selectedProductsForCase.some(p => p.id === prod.id);
+            if(!exists) {
+                selectedProductsForCase.push(prod);
+            } else {
+                selectedProductsForCase = selectedProductsForCase.filter(p => p.id !== prod.id);
+            }
+            updateSelectedProductsUI();
+        }
+
+        function updateSelectedProductsUI() {
+            const container = document.getElementById('selectedProductsContainer');
+            if(selectedProductsForCase.length === 0) {
+                container.innerHTML = `<span class="text-xs text-slate-400 italic">لم تقم باختيار منتجات بعد...</span>`;
+                return;
+            }
+            container.innerHTML = selectedProductsForCase.map(p => `
+                <div class="bg-white dark:bg-slate-800 border border-emerald-300 dark:border-emerald-700 px-3 py-1.5 rounded-xl flex items-center gap-2 text-xs shadow-sm">
+                    ${p.image ? `<img src="${p.image}" class="w-5 h-5 rounded object-cover">` : ''}
+                    <span class="font-bold">${p.name}</span>
+                    <button type="button" onclick="removeSelectedProduct(${p.id})" class="text-red-500 ml-1 font-bold">×</button>
+                </div>
+            `).join('');
+        }
+
+        function removeSelectedProduct(id) {
+            selectedProductsForCase = selectedProductsForCase.filter(p => p.id !== id);
+            updateSelectedProductsUI();
+        }
+
+        // Render Cases with Images & Products Chips
+        function renderCases() {
+            const list = document.getElementById('casesList');
+            if(caseStudies.length === 0) {
+                list.innerHTML = `<div class="text-center py-8 text-slate-400">لا توجد حالات إكلينيكية مسجلة.</div>`;
+                return;
+            }
+            list.innerHTML = caseStudies.map(c => `
+                <div class="glass-card p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                    <div class="flex justify-between items-start">
+                        <h3 class="text-lg font-black text-emerald-600 dark:text-emerald-400"><i class="fa-solid fa-notes-medical ml-2"></i> ${c.title}</h3>
+                        <button onclick="deleteCase(${c.id})" class="text-xs text-red-500 font-bold"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                    ${c.image ? `<img src="${c.image}" class="w-full h-56 object-cover rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">` : ''}
+                    <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-900/50 p-3 rounded-2xl">
+                        <strong>وصف الحالة:</strong> ${c.description}
+                    </p>
+                    ${c.products && c.products.length > 0 ? `
+                        <div>
+                            <span class="text-xs font-bold text-slate-500 block mb-2">المنتجات المستخدمة في الحالة:</span>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                                ${c.products.map(p => `
+                                    <div class="bg-white dark:bg-slate-900 p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-3 shadow-sm">
+                                        ${p.image ? `<img src="${p.image}" class="w-10 h-10 rounded-xl object-cover">` : `<div class="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center"><i class="fa-solid fa-pump-soap"></i></div>`}
+                                        <div class="overflow-hidden">
+                                            <p class="text-xs font-bold truncate">${p.name}</p>
+                                            <p class="text-[10px] text-emerald-600">${p.brand}</p>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    <div class="bg-emerald-50/70 dark:bg-emerald-950/40 p-4 rounded-2xl border border-emerald-200 dark:border-emerald-900/50">
+                        <span class="text-xs font-bold text-emerald-800 dark:text-emerald-300 block mb-1"><i class="fa-solid fa-list-check ml-1"></i> ترتيب الاستخدام:</span>
+                        <p class="text-xs text-slate-700 dark:text-slate-200 whitespace-pre-line leading-relaxed">${c.routine}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Render Conditions
+        function renderConditions() {
+            const grid = document.getElementById('conditionsGrid');
+            if(conditions.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center py-8 text-slate-400">لا توجد أمراض مسجلة.</div>`;
+                return;
+            }
+            grid.innerHTML = conditions.map(cd => `
+                <div class="glass-card p-6 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-base font-bold text-indigo-600 dark:text-indigo-400">${cd.name}</h3>
+                        <button onclick="deleteCondition(${cd.id})" class="text-xs text-red-500"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                    <p class="text-xs text-slate-600 dark:text-slate-300"><strong>الأعراض:</strong> ${cd.symptoms}</p>
+                    <div class="bg-indigo-50/50 dark:bg-indigo-950/30 p-3 rounded-xl text-xs">
+                        <span class="font-bold text-indigo-700 dark:text-indigo-300 block mb-1">المواد الفعالة المقترحة:</span>
+                        <span>${cd.ingredients}</span>
+                    </div>
+                    ${cd.avoid ? `<p class="text-xs text-red-500 bg-red-50 dark:bg-red-950/30 p-2 rounded-xl"><strong>محاذير:</strong> ${cd.avoid}</p>` : ''}
+                </div>
+            `).join('');
+        }
+
+        // Render Products
+        function renderProducts() {
+            const query = document.getElementById('pSearchInput').value.toLowerCase();
+            const skinFilter = document.getElementById('pSkinFilter').value;
+            const brandFilter = document.getElementById('pBrandFilter').value;
+
+            const filtered = products.filter(p => {
+                return (p.name.toLowerCase().includes(query) || p.ingredients.toLowerCase().includes(query)) &&
+                       (skinFilter === '' || p.skin === skinFilter) &&
+                       (brandFilter === '' || p.brand === brandFilter);
+            });
+
+            const grid = document.getElementById('productsGrid');
+            if(filtered.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center py-12 text-slate-400">لا توجد منتجات مطابقة.</div>`;
+                return;
+            }
+            grid.innerHTML = filtered.map(p => `
+                <div class="glass-card rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col justify-between shadow-sm">
+                    <div>
+                        ${p.image ? `<img src="${p.image}" class="w-full h-44 object-cover">` : `<div class="w-full h-28 bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-400"><i class="fa-solid fa-pump-soap text-3xl"></i></div>`}
+                        <div class="p-5 space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 font-bold px-2.5 py-1 rounded-full">${p.brand}</span>
+                                <span class="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-full text-slate-500">بشرة ${p.skin}</span>
+                            </div>
+                            <h3 class="text-base font-extrabold">${p.name}</h3>
+                            <p class="text-xs text-slate-500"><strong>الغرض:</strong> ${p.purpose}</p>
+                            <div class="bg-slate-50 dark:bg-slate-900/80 p-2.5 rounded-xl text-xs space-y-1">
+                                <p><strong>المواد:</strong> ${p.ingredients}</p>
+                                <p><strong>الاستخدام:</strong> ${p.usage}</p>
+                            </div>
+                            <div class="bg-teal-50 dark:bg-teal-950/30 p-3 rounded-xl text-xs text-teal-800 dark:text-teal-200">
+                                <strong>طريقة الوصف والبيع:</strong>
+                                <p class="mt-1">${p.salesTip}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-3 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                        <button onclick="deleteProduct(${p.id})" class="text-xs text-red-500 font-bold"><i class="fa-solid fa-trash"></i> حذف</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Form Switcher
+        function switchFormType(type) {
+            ['product', 'case', 'condition'].forEach(t => {
+                document.getElementById(`formAdd${t.charAt(0).toUpperCase() + t.slice(1)}`).classList.add('hidden');
+                document.getElementById(`btn-form-${t}`).className = "px-4 py-2 rounded-xl text-xs font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300";
+            });
+            document.getElementById(`formAdd${type.charAt(0).toUpperCase() + type.slice(1)}`).classList.remove('hidden');
+            document.getElementById(`btn-form-${type}`).className = "px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 text-white";
+            if(type === 'case') renderProductPicker();
+        }
+
+        // Saves
+        function saveProduct(e) {
+            e.preventDefault();
+            products.push({
+                id: Date.now(),
+                name: document.getElementById('pName').value,
+                brand: document.getElementById('pBrand').value,
+                skin: document.getElementById('pSkin').value,
+                purpose: document.getElementById('pPurpose').value,
+                age: document.getElementById('pAge').value || 'غير محدد',
+                ingredients: document.getElementById('pIngredients').value,
+                usage: document.getElementById('pUsage').value,
+                salesTip: document.getElementById('pSalesTip').value,
+                image: document.getElementById('pImage').value
+            });
+            localStorage.setItem('ph_products_db', JSON.stringify(products));
+            document.getElementById('formAddProduct').reset();
+            updateBrandDropdown();
+            renderProducts();
+            renderProductPicker();
+            switchTab('products');
+        }
+
+        function saveCase(e) {
+            e.preventDefault();
+            caseStudies.push({
+                id: Date.now(),
+                title: document.getElementById('cTitle').value,
+                image: document.getElementById('cImage').value,
+                description: document.getElementById('cDescription').value,
+                products: [...selectedProductsForCase],
+                routine: document.getElementById('cRoutine').value
+            });
+            localStorage.setItem('ph_cases_db', JSON.stringify(caseStudies));
+            document.getElementById('formAddCase').reset();
+            selectedProductsForCase = [];
+            updateSelectedProductsUI();
+            renderCases();
+            switchTab('cases');
+        }
+
+        function saveCondition(e) {
+            e.preventDefault();
+            conditions.push({
+                id: Date.now(),
+                name: document.getElementById('condName').value,
+                symptoms: document.getElementById('condSymptoms').value,
+                ingredients: document.getElementById('condIngredients').value,
+                avoid: document.getElementById('condAvoid').value
+            });
+            localStorage.setItem('ph_conditions_db', JSON.stringify(conditions));
+            document.getElementById('formAddCondition').reset();
+            renderConditions();
+            switchTab('conditions');
+        }
+
+        function deleteProduct(id) {
+            if(confirm('حذف المنتج؟')) {
+                products = products.filter(p => p.id !== id);
+                localStorage.setItem('ph_products_db', JSON.stringify(products));
+                updateBrandDropdown();
+                renderProducts();
+            }
+        }
+        function deleteCase(id) {
+            if(confirm('حذف الحالة؟')) {
+                caseStudies = caseStudies.filter(c => c.id !== id);
+                localStorage.setItem('ph_cases_db', JSON.stringify(caseStudies));
+                renderCases();
+            }
+        }
+        function deleteCondition(id) {
+            if(confirm('حذف المشكلة؟')) {
+                conditions = conditions.filter(cd => cd.id !== id);
+                localStorage.setItem('ph_conditions_db', JSON.stringify(conditions));
+                renderConditions();
+            }
+        }
+
+        function updateBrandDropdown() {
+            const brands = [...new Set(products.map(p => p.brand))];
+            document.getElementById('pBrandFilter').innerHTML = `<option value="">كل الشركات</option>` + brands.map(b => `<option value="${b}">${b}</option>`).join('');
+        }
+
+        // AI Quiz
+        async function startAiQuiz() {
+            if(!apiKey) { openApiKeyModal(); return; }
+            const quizContainer = document.getElementById('quiz-container');
+            document.getElementById('quiz-setup').classList.add('hidden');
+            quizContainer.classList.remove('hidden');
+            quizContainer.innerHTML = `<div class="py-12 text-slate-400 flex flex-col items-center justify-center gap-3"><i class="fa-solid fa-spinner fa-spin text-3xl text-purple-500"></i><p>جاري إنشاء سؤال ذكي...</p></div>`;
+
+            const prompt = `أنت خبير صيدلاني وتجميل. بناء على المنتجات والحالات:
+            المنتجات: ${JSON.stringify(products)}
+            الحالات: ${JSON.stringify(caseStudies)}
+            ولد سؤال صيدلاني إكلينيكي واحد (اختيار من متعدد).
+            أرجع النتيجة بتنسيق JSON حصراً:
+            {
+              "question": "السؤال",
+              "options": ["خيار 1", "خيار 2", "خيار 3", "خيار 4"],
+              "correctIndex": 0,
+              "explanation": "التفسير الإكلينيكي."
+            }`;
+
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+                const data = await response.json();
+                const q = JSON.parse(data.candidates[0].content.parts[0].text.replace(/```json/g, '').replace(/```/g, '').trim());
+
+                quizContainer.innerHTML = `
+                    <div class="bg-purple-50 dark:bg-purple-950/40 p-6 rounded-3xl border border-purple-200 dark:border-purple-900/50 space-y-4">
+                        <h3 class="text-base font-bold">${q.question}</h3>
+                        <div class="space-y-2">
+                            ${q.options.map((opt, idx) => `
+                                <button onclick="checkAnswer(${idx},${q.correctIndex}, \`${q.explanation.replace(/'/g, "\\'")}\`)" class="w-full text-right p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-700 font-semibold text-xs transition opt-btn">${opt}</button>
+                            `).join('')}
+                        </div>
+                        <div id="quiz-feedback" class="hidden p-4 rounded-2xl text-xs font-bold"></div>
+                    </div>
+                    <div class="flex justify-between pt-2">
+                        <button onclick="document.getElementById('quiz-setup').classList.remove('hidden'); document.getElementById('quiz-container').classList.add('hidden');" class="px-4 py-2 bg-slate-800 rounded-xl text-xs font-bold">إلغاء</button>
+                        <button onclick="startAiQuiz()" class="px-5 py-2 bg-purple-600 text-white rounded-xl text-xs font-bold">السؤال التالي</button>
+                    </div>
+                `;
+            } catch (err) {
+                quizContainer.innerHTML = `<div class="text-red-500 py-4 text-xs">حدث خطأ. تأكد من المفتاح.</div><button onclick="startAiQuiz()" class="px-4 py-2 bg-purple-600 text-white rounded-xl text-xs">إعادة</button>`;
+            }
+        }
+
+        function checkAnswer(selected, correct, exp) {
+            document.querySelectorAll('.opt-btn').forEach((btn, idx) => {
+                btn.disabled = true;
+                if(idx === correct) btn.className = "w-full text-right p-3 rounded-2xl bg-emerald-100 dark:bg-emerald-950 border border-emerald-500 text-xs font-bold text-emerald-200";
+                else if(idx === selected) btn.className = "w-full text-right p-3 rounded-2xl bg-red-100 dark:bg-red-950 border border-red-500 text-xs font-bold text-red-200";
+            });
+            const fb = document.getElementById('quiz-feedback');
+            fb.classList.remove('hidden');
+            fb.innerHTML = (selected === correct ? `إجابة صحيحة! 🎉<br>` : `إجابة خاطئة.<br>`) + `<span class="font-normal block mt-1">${exp}</span>`;
+        }
+
+        // API Key Modal
+        function openApiKeyModal() { document.getElementById('apiKeyInput').value = apiKey; document.getElementById('apiKeyModal').classList.remove('flex'); document.getElementById('apiKeyModal').classList.add('flex'); }
+        function closeApiKeyModal() { document.getElementById('apiKeyModal').classList.remove('flex'); document.getElementById('apiKeyModal').classList.add('hidden'); }
+        function saveApiKey() { apiKey = document.getElementById('apiKeyInput').value.trim(); localStorage.setItem('gemini_api_key', apiKey); closeApiKeyModal(); }
+
+        // Theme
+        function initTheme() {
+            if (localStorage.getItem('theme') === 'light') { document.documentElement.classList.remove('dark'); document.getElementById('theme-icon').className = "fa-solid fa-sun text-amber-500"; }
+            else { document.documentElement.classList.add('dark'); document.getElementById('theme-icon').className = "fa-solid fa-moon text-yellow-400"; }
+        }
+        function toggleDarkMode() {
+            if (document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark'); localStorage.setItem('theme', 'light');
+                document.getElementById('theme-icon').className = "fa-solid fa-sun text-amber-500";
+            } else {
+                document.documentElement.classList.add('dark'); localStorage.setItem('theme', 'dark');
+                document.getElementById('theme-icon').className = "fa-solid fa-moon text-yellow-400";
+            }
+        }
+    </script>
+</body>
+</html>
